@@ -199,13 +199,33 @@ int main() {
     float average_waiting_time;
     int quantum = 4;
 
+    printf("====================================================================================\n");
     printf("\nFCFS Scheduling:\n");
     fcfs(processes, n);
     print_processes(processes, n);
     calculate_average_times(processes, n, &average_waiting_time);
     printf("Average Waiting Time: %.2f\n\n", average_waiting_time);
 
-    // Repeat for SJF, RR, and Priority Scheduling...
+    printf("====================================================================================\n");
+    printf("\nSJF Scheduling:\n");
+    sjf(processes, n);
+    print_processes(processes, n);
+    calculate_average_times(processes, n, &average_waiting_time);
+    printf("Average Waiting Time: %.2f\n\n", average_waiting_time);
+    
+    printf("====================================================================================\n");
+    printf("\nRR Scheduling (Quantum = %d):\n", quantum);
+    rr(processes, n, quantum);
+    print_processes(processes, n);
+    calculate_average_times(processes, n, &average_waiting_time);
+    printf("Average Waiting Time: %.2f\n\n", average_waiting_time);
+    
+    printf("====================================================================================\n");
+    printf("\nPriority Scheduling:\n");
+    priority_scheduling(processes, n);
+    print_processes(processes, n);
+    calculate_average_times(processes, n, &average_waiting_time);
+    printf("Average Waiting Time: %.2f\n\n", average_waiting_time);
 
     return 0;
 }
