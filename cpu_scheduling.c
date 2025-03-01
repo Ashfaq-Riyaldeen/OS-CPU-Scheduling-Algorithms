@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+// Structure to store process information
 typedef struct {
     int process_id;
     int arrival_time;
@@ -8,12 +9,12 @@ typedef struct {
     int waiting_time;
     int turnaround_time;
     int remaining_time;
+    int priority;
 } Process;
 
 /////////////////////////////////////////////////////////////
-// Calculate average Time
+// Function to calculate the average waiting time
 ////////////////////////////////////////////////////////////
-
 void calculate_average_times(Process processes[], int n, float *average_waiting_time) {
     int total_waiting_time = 0;
     for (int i = 0; i < n; i++) {
@@ -23,130 +24,162 @@ void calculate_average_times(Process processes[], int n, float *average_waiting_
 }
 
 /////////////////////////////////////////////////////////////
-// FCFS
+// First Come First Serve (FCFS) Scheduling Algorithm
 ////////////////////////////////////////////////////////////
-
 void fcfs(Process processes[], int n) {
     int current_time = 0;
     for (int i = 0; i < n; i++) {
+        // If CPU is idle, move to process arrival time
         if (current_time < processes[i].arrival_time) {
             current_time = processes[i].arrival_time;
         }
+        
+        // Calculate waiting time and turnaround time
         processes[i].waiting_time = current_time - processes[i].arrival_time;
         current_time += processes[i].burst_time;
         processes[i].turnaround_time = processes[i].waiting_time + processes[i].burst_time;
     }
 }
 
-
 /////////////////////////////////////////////////////////////
-// SJF
+// Shortest Job First (SJF) Scheduling Algorithm (Non-preemptive)
 ////////////////////////////////////////////////////////////
-
 void sjf(Process processes[], int n) {
-    int completed = 0, current_time = 0, min_index;
-    int *is_completed = (int *)malloc(n * sizeof(int));
-    for (int i = 0; i < n; i++) {
-        is_completed[i] = 0;
-    }
+    int completed = 0, current_time = 0;
+    int is_completed[n];
+    for (int i = 0; i < n; i++) is_completed[i] = 0;
+
     while (completed != n) {
-        min_index = -1;
+        int min_index = -1;
         for (int i = 0; i < n; i++) {
+            // Find the shortest job available at the current time
             if (processes[i].arrival_time <= current_time && is_completed[i] == 0) {
                 if (min_index == -1 || processes[i].burst_time < processes[min_index].burst_time) {
                     min_index = i;
                 }
             }
         }
+        
         if (min_index != -1) {
             processes[min_index].waiting_time = current_time - processes[min_index].arrival_time;
+            if (processes[min_index].waiting_time < 0) processes[min_index].waiting_time = 0;
             current_time += processes[min_index].burst_time;
             processes[min_index].turnaround_time = processes[min_index].waiting_time + processes[min_index].burst_time;
             is_completed[min_index] = 1;
             completed++;
         } else {
+            // If no process is available, move forward in time
             current_time++;
         }
     }
-    free(is_completed);
 }
 
 /////////////////////////////////////////////////////////////
-// Round Robin
+// Round Robin (RR) Scheduling Algorithm
 ////////////////////////////////////////////////////////////
-
 void rr(Process processes[], int n, int quantum) {
     int current_time = 0, completed = 0;
-    int *remaining_burst_time = (int *)malloc(n * sizeof(int));
-    for (int i = 0; i < n; i++) {
-        remaining_burst_time[i] = processes[i].burst_time;
-    }
+    int remaining_time[n];
+    for (int i = 0; i < n; i++) remaining_time[i] = processes[i].burst_time;
+
     while (completed != n) {
+        int done = 1;
         for (int i = 0; i < n; i++) {
-            if (processes[i].arrival_time <= current_time && remaining_burst_time[i] > 0) {
-                if (remaining_burst_time[i] > quantum) {
+            if (remaining_time[i] > 0 && processes[i].arrival_time <= current_time) {
+                done = 0;
+                if (remaining_time[i] > quantum) {
                     current_time += quantum;
-                    remaining_burst_time[i] -= quantum;
+                    remaining_time[i] -= quantum;
                 } else {
-                    current_time += remaining_burst_time[i];
+                    current_time += remaining_time[i];
                     processes[i].waiting_time = current_time - processes[i].arrival_time - processes[i].burst_time;
-                    remaining_burst_time[i] = 0;
+                    if (processes[i].waiting_time < 0) processes[i].waiting_time = 0;
                     processes[i].turnaround_time = processes[i].waiting_time + processes[i].burst_time;
+                    remaining_time[i] = 0;
                     completed++;
                 }
             }
         }
+        if (done) current_time++;
     }
-    free(remaining_burst_time);
 }
 
+/////////////////////////////////////////////////////////////
+// Priority Scheduling Algorithm (Non-preemptive)
+////////////////////////////////////////////////////////////
+void priority_scheduling(Process processes[], int n) {
+    int current_time = 0, completed = 0;
+    int is_completed[n];
+    for (int i = 0; i < n; i++) is_completed[i] = 0;
 
+    while (completed != n) {
+        int highest_priority_index = -1;
+        for (int i = 0; i < n; i++) {
+            // Find the process with the highest priority (lowest value)
+            if (processes[i].arrival_time <= current_time && is_completed[i] == 0) {
+                if (highest_priority_index == -1 || processes[i].priority < processes[highest_priority_index].priority) {
+                    highest_priority_index = i;
+                }
+            }
+        }
+        
+        if (highest_priority_index != -1) {
+            processes[highest_priority_index].waiting_time = current_time - processes[highest_priority_index].arrival_time;
+            if (processes[highest_priority_index].waiting_time < 0) processes[highest_priority_index].waiting_time = 0;
+            current_time += processes[highest_priority_index].burst_time;
+            processes[highest_priority_index].turnaround_time = processes[highest_priority_index].waiting_time + processes[highest_priority_index].burst_time;
+            is_completed[highest_priority_index] = 1;
+            completed++;
+        } else {
+            current_time++;
+        }
+    }
+}
 
+// Function to display the process scheduling results
 void print_processes(Process processes[], int n) {
-    printf("Process\tArrival Time\tBurst Time\tWaiting Time\tTurnaround Time\n");
+    printf("Process   Arrival Time   Burst Time   Priority   Waiting Time   Turnaround Time\n");
     for (int i = 0; i < n; i++) {
-        printf("P%d\t\t\t%d\t\t\t%d\t\t\t\t%d\t\t\t\t\t%d\n",
-               processes[i].process_id,
-               processes[i].arrival_time,
-               processes[i].burst_time,
-               processes[i].waiting_time,
+        printf("%-10d%-15d%-13d%-11d%-15d%-16d\n", 
+               processes[i].process_id, 
+               processes[i].arrival_time, 
+               processes[i].burst_time, 
+               processes[i].priority, 
+               processes[i].waiting_time, 
                processes[i].turnaround_time);
     }
 }
 
-
-/////////////////////////////////////////////////////////////
-// Main
-////////////////////////////////////////////////////////////
-
 int main() {
+    // Define sample processes with (ID, Arrival Time, Burst Time, Priority)
     Process processes[] = {
-        {1, 0, 10, 0, 0, 0},
-        {2, 6, 8, 0, 0, 0},
-        {3, 7, 4, 0, 0, 0},
-        {4, 9, 5, 0, 0, 0},
+        {1, 1, 6, 0, 0, 0, 3},
+        {2, 3, 8, 0, 0, 0, 1},
+        {3, 5, 2, 0, 0, 0, 5},
+        {4, 7, 4, 0, 0, 0, 2},
+        {5, 9, 5, 0, 0, 0, 4}
     };
     int n = sizeof(processes) / sizeof(processes[0]);
     float average_waiting_time;
-
-    printf("FCFS Scheduling:\n");
+    int quantum = 4;
+    
+    printf("\nFCFS Scheduling:\n");
     fcfs(processes, n);
     print_processes(processes, n);
     calculate_average_times(processes, n, &average_waiting_time);
     printf("Average Waiting Time: %.2f\n\n", average_waiting_time);
-
-    printf("SJF Scheduling:\n");
+    
+    printf("\nSJF Scheduling:\n");
     sjf(processes, n);
     print_processes(processes, n);
-    calculate_average_times(processes, n, &average_waiting_time);
-    printf("Average Waiting Time: %.2f\n\n", average_waiting_time);
-
-    int quantum = 2;
-    printf("RR Scheduling (Quantum = %d):\n", quantum);
+    
+    printf("\nRR Scheduling (Quantum = %d):\n", quantum);
     rr(processes, n, quantum);
     print_processes(processes, n);
-    calculate_average_times(processes, n, &average_waiting_time);
-    printf("Average Waiting Time: %.2f\n\n", average_waiting_time);
-
+    
+    printf("\nPriority Scheduling:\n");
+    priority_scheduling(processes, n);
+    print_processes(processes, n);
+    
     return 0;
 }
